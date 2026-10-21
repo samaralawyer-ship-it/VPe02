@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <title>Docker: учебный пример</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 2rem auto; max-width: 44rem; line-height: 1.5; }
+    code { background: #f2f2f2; padding: 0.1rem 0.3rem; border-radius: 4px; }
+    button { padding: 0.4rem 0.8rem; margin: 0.2rem; cursor: pointer; }
+    pre { background: #f7f7f7; padding: 1rem; overflow-x: auto; }
+    .ok { color: #1a7f37; } .err { color: #b42318; }
+  </style>
+</head>
+<body>
+  <h1>Фронтенд в контейнере nginx</h1>
+  <p>Эта страница отдаётся контейнером <code>nginx:alpine</code> с порта 8080.
+     Запросы к бэкенду идут <b>внутри сети compose</b> по имени сервиса,
+     а не через <code>localhost</code> — у каждого контейнера свой localhost.</p>
+
+  <p>
+    <button onclick="call('/health')">/health</button>
+    <button onclick="call('/info')">/info</button>
+    <button onclick="call('/version')">/version</button>
+    <button onclick="call('/divide/10/2')">/divide/10/2</button>
+  </p>
+  <pre id="out">нажмите кнопку — запрос уйдёт в http://localhost:5000</pre>
+
+  <script>
+    // Обратите внимание: из браузера запрос идёт на localhost:5000 (порт хоста),
+    // потому что браузер работает на ХОСТЕ, а не внутри сети compose.
+    async function call(path) {
+      const out = document.getElementById('out');
+      try {
+        const r = await fetch('http://localhost:5000' + path);
+        const text = await r.text();
+        out.innerHTML = `<span class="ok">HTTP ${r.status}</span>\n` + text;
+      } catch (e) {
+        out.innerHTML = `<span class="err">Ошибка: ${e}</span>\n` +
+          'Проверьте, что бэкенд запущен: docker compose ps';
+      }
+    }
+  </script>
+</body>
+</html>

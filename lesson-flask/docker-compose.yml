@@ -1,0 +1,47 @@
+# Compose для учебного примера: два сервиса, как в уроке (backend + nginx-фронтенд).
+#
+# Смысл compose: один файл описывает несколько контейнеров и связь между ними.
+# Запуск/остановка — одной командой, вместо длинных docker run.
+
+services:
+  # ── Бэкенд: наше Flask-приложение ──────────────────────────────────────────
+  backend:
+    build: .                     # собрать образ из Dockerfile в этой папке
+    image: lesson-flask:1        # имя, под которым образ останется в списке
+    container_name: lesson-backend
+    ports:
+      - "5000:5000"              # хост:контейнер — снаружи доступно на localhost:5000
+    environment:
+      PORT: "5000"
+    restart: unless-stopped
+    networks:
+      - app-network
+    healthcheck:
+      # Проверка «жив ли сервис» средствами самого контейнера.
+      # curl в slim-образе нет, поэтому используем python из образа.
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:5000/health', timeout=3).status == 200 else 1)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+  # ── Фронтенд: готовый образ nginx из Docker Hub ────────────────────────────
+  # Своего Dockerfile не нужно: берём официальный образ и подкладываем html-файл томом.
+  frontend:
+    image: nginx:alpine
+    container_name: lesson-frontend
+    ports:
+      - "8080:80"                # фронтенд открывается на localhost:8080
+    volumes:
+      # ./html читается с ХОСТА: правим файл — обновляем страницу в браузере,
+      # пересборка не нужна. В этом и смысл bind mount.
+      - ./html:/usr/share/nginx/html:ro
+    depends_on:
+      - backend                  # поднять бэкенд раньше фронтенда
+    restart: unless-stopped
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
